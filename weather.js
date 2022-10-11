@@ -1,28 +1,36 @@
 #!/usr/bin/env node
 import { getArgs } from './helpers/args.js'
 import { getWeather } from './services/api.service.js';
-import { printHelp, printSuccess, printError } from './services/log.service.js'
+import { printHelp, printSuccess, printError, printForecast } from './services/log.service.js'
 import { saveKeyValue, TOKEN_DICTIONARY } from './services/storage.service.js'
 
-const saveToken = async (token) => {
-    if (!token.length) {
-        printError('Where is no token');
+const saveParam = async (name, value) => {
+    if (!name.length) {
+        printError(`You have not set ${name}`);
         return;
     }
 
     try {
-        await saveKeyValue(TOKEN_DICTIONARY.token, token);
-        printSuccess('Token has been saved');
-    } catch(e) {
+        await saveKeyValue(TOKEN_DICTIONARY[name], value);
+        printSuccess(`${name.charAt(0).toUpperCase()}${name.substring(1)} has been saved`);
+    } catch (e) {
         printError(e.message);
     }
 }
 
+const saveToken = async (token) => {
+    await saveParam(TOKEN_DICTIONARY.token, token);
+}
+
+const saveCity = async (city) => {
+    await saveParam(TOKEN_DICTIONARY.city, city);
+}
+
 const getForecast = async () => {
     try {
-        const weather = await getWeather(process.env.CITY);
-        console.log(weather);
-    } catch(e) {
+        const weather = await getWeather();
+        printForecast(weather);
+    } catch (e) {
         if (e?.response?.status == 404) {
             printError('Incorrect city');
         } else if (e?.response?.status == 401) {
@@ -33,19 +41,19 @@ const getForecast = async () => {
     }
 }
 
-const initCLI = () => {
+const initCLI = async () => {
     const args = getArgs(process.argv);
 
     if (args.h) {
         printHelp()
     }
 
-    if (args.s) {
-        // Save a city
+    if (args.c) {
+        await saveCity(args.c)
     }
 
     if (args.t) {
-        return saveToken(args.t)
+        await saveToken(args.t)
     }
 
     getForecast();
